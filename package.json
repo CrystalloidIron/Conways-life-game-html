@@ -1,0 +1,9 @@
+{
+  "name": "conways_lifegame",
+  "version": "0.0.0",
+  "description": "conways_lifegame",
+  "main": "server.js",
+  "author": {
+    "name": ""
+  }
+}
