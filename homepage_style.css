@@ -1,14 +1,28 @@
-body {
-    position: center;
-    font-family: weiruanyahe ;
+*{
+    padding:0;
+    margin:0;
 }
-h1{
-    font:bold 200px weiruanyahe ;
+body {
+    width:auto;
+    font-family:"Microsoft YaHei UI", serif ;
+}
+#menu{
+    position: static;
+    padding:0;
+    margin:0;
+    width:100vw;
+    height:25vh;
+    max-height:25vw;
+    text-align: center;
     background-color: rgb(182 255 0);
 }
-
+#menu>h1,h3{
+    margin: 0;
+    padding-top:1vh;
+    font-size:110%;
+}
 #view_area{
-    height:80vmin;
-    width:80vmin;
+    height:50vh;
+    width:80vw;
     position:absolute;
 }
