@@ -22,7 +22,8 @@ body {
     font-size:110%;
 }
 #view_area{
-    height:50vh;
-    width:80vw;
-    position:absolute;
+    height: 50vh;
+    width: 80vw;
+    position: absolute;
+    left: revert;
 }
