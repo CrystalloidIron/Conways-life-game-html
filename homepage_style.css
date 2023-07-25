@@ -3,27 +3,37 @@
     margin:0;
 }
 body {
-    width:auto;
-    font-family:"Microsoft YaHei UI", serif ;
+    width: auto;
+    font-family: "Microsoft YaHei UI", serif;
+    background: #C5CCC5;
 }
-#menu{
-    position: static;
-    padding:0;
-    margin:0;
-    width:100vw;
-    height:25vh;
-    max-height:25vw;
+#menu {
+    width: 100vw;
+    height: 10vh;
+    max-height: 25vw;
     text-align: center;
     background-color: rgb(182 255 0);
 }
-#menu>h1,h3{
+
+#menu > h1, h3 {
     margin: 0;
-    padding-top:1vh;
-    font-size:110%;
+    padding-top: 1vh;
+    font-size: 110%;
 }
-#view_area{
-    height: 50vh;
-    width: 80vw;
+
+#view_area {
+    height: 80vh;
+    width: 70vw;
     position: absolute;
-    left: revert;
+    left: 15vw;
+    top: 10vh;
+}
+
+.view_page {
+    height: auto;
+    width: auto;
+    overflow: hidden;
+}
+
+.view_page > canvas {
 }
