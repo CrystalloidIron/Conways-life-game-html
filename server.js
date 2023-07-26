@@ -1,8 +1,5 @@
 //这个文件实现画布与空间的绑定，并且定义所有相关功能函数的实现
 //测试某个函数的运行时间，记得加".call(this)"
-function running(func) {
-
-}
 
 //基本显示色彩定义
 const colorSetBase = {life: "#99FF33FF", background: '#C5CCC5', remain: "#FFCC66FF"};
@@ -42,10 +39,16 @@ function toColor(n) {
 
 //定义’空间’类，用于存储生物的信息
 //参数为：宽(width->X),长(length->Y),循环(isloop),初始数据(data)
-function Space(width = 64, length = 64, isloop = true, data = 'r3') {
+function Space(width = 64, length = 64, isloop = true, data = 'b') {
     this.Max_X = width;
     this.Max_Y = length;
     this.isloop = isloop;
+    //世界演化状态标志，真意味着此时世界正在自动演化,对外只读，只能通过stepOn和stop方法修改
+    let active = false;
+    //世界自动演化最小间隔，默认每100ms一步
+    let wordInterval = 100;
+    let stepNum = 0;
+    let minInterval = Math.ceil(this.Max_X * this.Max_Y / 1000);
     //this.data以二元数组包含布尔类型存储，索引为data[y][x]
     if (typeof (data) === 'string') {
         if (/(^r)/.test(data)) {
@@ -68,10 +71,30 @@ function Space(width = 64, length = 64, isloop = true, data = 'r3') {
             for (let j = 0; j < width; j++) // noinspection EqualityComparisonWithCoercionJS
                 this.data[i][j] = 0 != data[i][j];
     }
-
-    //使生命演化 1 步的函数，待修改
+    //获取演化步数的函数
+    this.getStep = function () {
+        return stepNum
+    };
+    //获取演化最低间隔时长的函数
+    this.getWordInterval = function () {
+        return wordInterval
+    };
+    //修改演化最低时间间隔的函数,可在演化过程中修改，会重置定时触发器
+    this.setWordInterval = function (ms = 100) {
+        wordInterval = ms > minInterval ? ms : minInterval;
+        if (active)
+            this.stepOn()
+    };
+    //获取世界演化状态的函数
+    this.getActive = function () {
+        return active
+    };
+    //是世界停止演化的函数
+    this.stop = function () {
+        active = false
+    };
+    //使生命演化 1 步的函数
     this.step = function () {
-
         //按照是否循环对数组进行初始化
         let a = new Array(this.Max_Y + 2);
         //a.fill(new Array(this.Max_X+2), 0, this.Max_Y + 2);
@@ -117,9 +140,47 @@ function Space(width = 64, length = 64, isloop = true, data = 'r3') {
             for (let j = 2; j < this.Max_Y + 2; j++) {
                 this.data[i - 2][j - 2] = alive.call(this, i, j);
             }
+        stepNum++;
+    };
+
+    //持续演化函数,暂时无法清除定时器
+    this.stepOn = new function () {
+        let SpaceStepper;
+        let steps = 0;
+        let handle;
+
+        function stepper() {
+            if (active) {
+                this.step();
+            } else {
+                active = false;
+                clearInterval(SpaceStepper);
+            }
+        }
+
+        function steppers() {
+            if (active && steps) {
+                this.step();
+                steps--;
+            } else {
+                active = false;
+                clearInterval(SpaceStepper);
+            }
+        }
+
+        return function (stepNum = 0) {
+            if (typeof stepNum === 'number' && stepNum > 0) {
+                steps = stepNum;
+                handle = steppers;
+            } else {
+                steps = 0;
+                handle = stepper;
+            }
+            if (active) clearInterval(SpaceStepper);
+            else active = true;
+            SpaceStepper = setInterval(handle.bind(this), wordInterval);
+        };
     }
-
-
     //用于在(x,y)位置放置一个已有空间的复制
     this.add = function (x = 0, y = 0, part = new Space(1, 1, true, [[true]])) {
         if (this.Max_X > part.Max_X && this.Max_Y > part.Max_Y) {
@@ -138,13 +199,16 @@ function Space(width = 64, length = 64, isloop = true, data = 'r3') {
         } else
             return false;
     }
-
 }
 
 //定义word_view类，绑定一个空间Space和一个含有canvas的div用于显示
-function WordView(page = document.createElement("div"), word = new Space()) {
+function WordView(page = document.createElement("div"), word = new Space(64, 64, true, 'r3')) {
     //存储世界内容
     this.word = word;
+    //世界显示频率，默认与世界演化速率一致
+    let speed = this.word.getWordInterval();
+    //跟随世界演化而显示标志，真表示正在跟随，只能被display函数修改
+    let follow = false;
     //显示比例:默认每zoom=100个元胞显示成800*800个像素px，zoom>0
     this.zoom = 1000;//放大显示
     //显示起始点
@@ -161,6 +225,7 @@ function WordView(page = document.createElement("div"), word = new Space()) {
     let Y_axis = document.createElement("div");
     //画布内容控制类
     let view = ca.getContext("2d");
+
 
     //放大显示
     function enlarge() {
@@ -183,6 +248,7 @@ function WordView(page = document.createElement("div"), word = new Space()) {
         //console.log(img0);
     }
 
+    //缩小显示。待定义
     function dwindle() {//缩小显示
 
     }
@@ -195,6 +261,54 @@ function WordView(page = document.createElement("div"), word = new Space()) {
             dwindle.call(this);
     }
 
+    //跟随世界演化以一定帧率上限显示(受限于显示速率speed）
+    this.display = new function () {
+        let wordDisplayer;
+        let flashes = 0;
+        let handle;
+
+        function displayer() {
+            if (follow && this.word.getActive())
+                this.show();
+            else {
+                clearInterval(wordDisplayer);
+                follow = false;
+            }
+        }
+
+        function displayers() {
+            if (follow && this.word.getActive() && flashes) {
+                this.show();
+                flashes--;
+            } else {
+                clearInterval(wordDisplayer);
+                follow = false;
+            }
+        }
+
+        return function (flashNum = 0) {
+            if (this.word.getActive()) {
+                if (typeof flashNum === 'number' && flashNum > 0) {
+                    flashes = flashNum;
+                    handle = displayers;
+                } else {
+                    flashes = 0;
+                    handle = displayer;
+                }
+                if (follow) clearInterval(wordDisplayer);
+                else follow = true;
+                wordDisplayer = setInterval(handle.bind(this), speed);
+            }
+        }
+    }
+    //获取显示状态的函数
+    this.getFollow = function () {
+        return follow
+    };
+    //停止显示跟随的函数
+    this.stopFollow = function () {
+        follow = false
+    };
     //用于保存现在界面的图片
     this.print_to = function (type = 'png') {
         let imgdata = view.getImageData(0, 0, view.width, view.height);
