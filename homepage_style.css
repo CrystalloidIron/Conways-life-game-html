@@ -1,39 +1,602 @@
-*{
-    padding:0;
-    margin:0;
-}
-body {
-    width: auto;
-    font-family: "Microsoft YaHei UI", serif;
-    background: #C5CCC5;
-}
-#menu {
-    width: 100vw;
-    height: 10vh;
-    max-height: 25vw;
-    text-align: center;
-    background-color: rgb(182 255 0);
-}
-
-#menu > h1, h3 {
+* {
+    padding: 0;
     margin: 0;
-    padding-top: 1vh;
-    font-size: 110%;
 }
 
-#view_area {
-    height: 80vh;
-    width: 70vw;
+@font-face {
+    font-family: "得意黑";
+    src: url("fontSet/SmileySans-Oblique.otf.woff2");
+}
+
+:root {
+    /*colorSet*/
+    --white: #F5F5F5;
+    --gray: #C5CCC5;
+
+    --light: #6DCC3D;
+    --graylight: #AACC99;
+    --graydark: #6A8060;
+    --dark: #22331F;
+    --sign: #FFEB3B;
+
+    --bulge: inset -0.25vh -0.25vh 0.5vh rgba(0, 0, 0, 0.25), inset 0.5vh 0.5vh 0.5vh rgba(230, 230, 230, 0.5), 0 0 1vh rgba(0, 0, 0, 0.25);
+    --recessed: 0 0 0.5vh rgba(230, 230, 230, 0.25), inset -0.25vh -0.25vh 0.5vh rgba(0, 0, 0, 0.25), inset 0.25vh 0.25vh 0.5vh rgba(0, 0, 0, 0.25);
+
+}
+
+
+/*元素和类选择器 规定各个模块的内部结构和基本色彩 使用 position和%等*/
+body {
+    font-family: "得意黑", "Microsoft YaHei UI", serif;
+}
+
+#main, #control, #toolbox, #view_area {
+    min-height: 400px;
+}
+
+#choices, #details {
+    display: none;
+}
+
+#control {
+    background: linear-gradient(135deg, #eaf786ff 20%, #50b347ff 100%);
+}
+
+/*一些控制面板的背景*/
+#controlBoard, #parameter, #runningBroad, #drawBroad {
+    background: var(--graylight);
+    box-shadow: var(--bulge);
+}
+
+/*标题部分结构,字体大小部分需要适应屏幕，未在此定义*/
+#title > div {
+    text-align: center;
+    user-select: none;
+    color: var(--light);
+    position: relative;
+}
+
+/*卡片类内部结构*/
+.cardSet {
+    position: relative;
+    background-color: var(--graydark);
+}
+
+.cardKey {
+    height: 80%;
+    width: 90%;
+    position: relative;
+    top: 10%;
+    box-sizing: border-box;
+    padding: 7%;
+    border-radius: 5%;
+    background: var(--graylight);
+    box-shadow: var(--bulge);
+    display: flex;
+}
+
+.cardKey::before {
+    content: "";
+    height: 70%;
+    width: 10%;
+    display: block;
     position: absolute;
-    left: 15vw;
-    top: 10vh;
+    left: 100%;
+    top: 15%;
+    border-radius: 0 10% 10% 0;
+    background: url("logos/cardJoint.svg") no-repeat;
+    background-size: contain;
 }
 
-.view_page {
-    height: auto;
-    width: auto;
+.cardKey > div {
+    background: var(--gray);
+    display: inline-block;
+    text-align: center;
+}
+
+/*cardKey在前signed在后*/
+.signed > div {
+    background: var(--light);
+}
+
+#userCard .logo1 {
+    height: 100%;
+    margin-right: 5%;
+    background-position: -200% -300%;
+}
+
+#userCard > .signed .logo1 {
+    background-position: -200% -200%;
+}
+
+.cardKey > div:last-child {
+    height: 100%;
+    flex: 1;
+}
+
+.cardKey > div > span {
+    color: var(--white);
+    font-size: smaller;
+}
+
+.signed > div > span {
+    color: var(--dark);
+}
+
+.cardKey > div > span:first-child {
+    font-size: larger;
+}
+
+.cardCover {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 91%, 91% 91%, 91% 9%, 0 9%);
+    background-color: var(--graylight);
+    box-shadow: var(--bulge);
+}
+
+/*主控面板的内部位置结构*/
+#controlBoard {
+    display: flex;
+    gap: 10%;
+    flex-direction: column;
+    padding: 8% 0;
+    box-sizing: border-box;
+}
+
+#controlBoard > div {
+    box-sizing: border-box;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 5%;
+}
+
+footer {
+    text-align: center;
+}
+
+footer > a {
+    display: inline-block;
+    width: 80%;
+    aspect-ratio: 26/5;
+    background: url("logos/signature.svg") no-repeat;
+    background-size: contain;
+    position: relative;
+    top: 50%;
+}
+
+/*工具面板内容样式*/
+#runningBroad, #pantingTool, #pantingModel, #signetSet {
+    box-sizing: border-box;
+}
+
+#runningBroad, #pantingTool, #pantingModel {
+    display: flex;
+    gap: 2%;
+    justify-content: center;
+}
+
+#runningBroad {
+    height: 37.5%;
+    padding: 5% 0;
+}
+
+#pantingTool {
+    height: 17.8%;
+    padding: 5% 0 0 0;
+}
+
+#pantingModel {
+    height: 15.5%;
+    padding: 3% 0;
+}
+
+#signetSet {
+    height: 12.4%;
+    padding: 3% 0;
+    white-space: nowrap;
+    overflow-x: scroll;
+    background: var(--graydark);
+    box-shadow: var(--recessed);
+}
+
+#signetSet::-webkit-scrollbar {
+    height: 0.5vh;
+}
+
+#signetSet::-webkit-scrollbar-thumb {
+    background: var(--light);
+    border-radius: 0.25vh;
+}
+
+#signetSet button {
+    margin: 0 2%;
+}
+
+#signetPreview {
+    padding: 8.3%;
+}
+
+#signetPreview > canvas {
+    width: 100%;
+    box-sizing: border-box;
+    display: inline-block;
+    aspect-ratio: 1/1;
+    border: 0.5vh solid var(--graydark);
+    background-color: var(--gray);
+}
+
+/*显示界面的样式*/
+#view_area {
+    background: var(--graylight);
+    box-shadow: var(--recessed);
+}
+
+.wordPage {
+    height: 100%;
     overflow: hidden;
+    background: var(--gray);
+    border: 0.5vh solid var(--graydark);
 }
 
-.view_page > canvas {
+.borderWord {
+    border-color: var(--dark);
+}
+
+/*用于设置参数表格的样式*/
+#parameter {
+    position: relative;
+    overflow: auto;
+    box-sizing: border-box;
+}
+
+#parameter::-webkit-scrollbar {
+    width: 1vh;
+    height: 1vh;
+}
+
+#parameter::-webkit-scrollbar-thumb {
+    border-radius: 0.5vh;
+    background: var(--graydark);
+}
+
+#parameter::-webkit-scrollbar-corner {
+}
+
+table {
+    width: 100%;
+    height: 79%;
+    border-spacing: 0.5vh;
+}
+
+td {
+    /*height: 25%;
+    width: 49%;*/
+    color: var(--graydark);
+    text-align: center;
+    border-radius: 1vh;
+    border: 0.25vh solid var(--graydark);
+}
+
+td span:last-child {
+    padding: 0 10%;
+    box-sizing: border-box;
+}
+
+.modifiable {
+    color: var(--dark);
+    border-color: var(--white);
+}
+
+td > span {
+    display: inline-block;
+    vertical-align: middle;
+    width: 45%;
+}
+
+.number > span:last-child {
+    height: 70%;
+    text-align: right;
+    background: var(--gray);
+    border: 0.5vh solid var(--graydark);
+}
+
+.focused > span:last-child {
+    background: var(--light);
+}
+
+.light > span:last-child {
+    width: 10%;
+    padding: 0;
+    aspect-ratio: 1/1;
+    border-radius: 50%;
+    background: var(--sign);
+    box-shadow: 0 0 1vh var(--sign);
+}
+
+.shutDown > span:last-child {
+    background: var(--gray);
+    box-shadow: none;
+}
+
+#controller > span {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#controller {
+    height: 19%;
+    width: 100%;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    background: var(--graylight);
+    box-sizing: border-box;
+    text-align: center;
+}
+
+#decrease, #increase {
+    width: 10%;
+    aspect-ratio: 1/1;
+    border-radius: 1vh;
+    background: var(--light);
+    box-shadow: var(--bulge);
+}
+
+#decrease {
+    clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+
+#increase {
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+#bar {
+    --percentage: 50%;
+    height: 40%;
+    border-radius: 1vh;
+    width: 70%;
+    margin: 5% 0;
+    background: var(--gray);
+    box-shadow: inset 0 0 0.5vh rgba(0, 0, 0, 0.25);
+}
+
+#bar::before {
+    content: "";
+    display: inline-block;
+    float: left;
+    border-radius: 1vh;
+    width: calc(var(--percentage) * 0.9 + 10%);
+    height: 100%;
+    background: var(--light);
+    box-shadow: 0.5vh 0 0.5vh rgba(0, 0, 0, 0.25);
+}
+
+#bar:after {
+    content: "";
+    width: 8%;
+    height: 50%;
+    position: absolute;
+    top: 0;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    left: calc(var(--percentage) * 0.63 + 15.5%);
+    display: inline-block;
+    background: var(--light);
+}
+
+/*logo类的基础结构，具体显示什么logo由具体位置的bg-position决定*/
+html > body .logo1 {
+    overflow: hidden;
+    aspect-ratio: 1/1;
+    background-image: url("logos/UILogos1.svg");
+    background-size: 400%;
+}
+
+html > body .logo2 {
+    overflow: hidden;
+    aspect-ratio: 1/1;
+    background-image: url("logos/UILogos2.svg");
+    background-size: 300%;
+    background-position: -200% 0;
+}
+
+/*按钮类的基础结构*/
+button {
+    height: 100%;
+    position: relative;
+    border: none;
+    vertical-align: top;
+    border-radius: 10%;
+    box-shadow: var(--bulge);
+    background-color: var(--light);
+}
+
+.lightButton::after {
+    content: "";
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    height: 10%;
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    background-color: var(--sign);
+    box-shadow: 0 0 4px var(--sign);
+}
+
+.lightUnSign::after {
+    background-color: var(--gray);
+    box-shadow: none;
+}
+
+/*各按钮对应logo*/
+#downLoadWord {
+    background-position: -300% 0;
+}
+
+#printScreen {
+    background-position: -300% -200%;
+}
+
+#printWord {
+    background-position: -100% -200%;
+}
+
+#displayModelSwitch {
+    background-position: -200% 0;
+}
+
+#fitScreen {
+    background-position: -300% -400%;
+}
+
+#gridLine {
+    background-position: 0 -600%;
+}
+
+#on-off {
+    background-position: 0 -800%;
+}
+
+#step {
+    background-position: -100% -600%;
+}
+
+#backgrounder {
+    background-position: -100% -800%;
+}
+
+#pen {
+    background-position: -200% -400%;
+}
+
+#signet {
+    background-position: 0 -400%;
+}
+
+#cropping {
+    background-position: -100% -400%;
+}
+
+#union {
+    background-position: -200% -600%;
+}
+
+#intersection {
+    background-position: -300% -600%;
+}
+
+#erase {
+    background-position: -200% -800%;
+}
+
+#reverse {
+    background-position: -300% -800%;
+}
+
+#block {
+    background-position: 0 0;
+}
+
+#glider {
+    background-position: -100% 0;
+}
+
+#beehive {
+    background-position: 0 -100%;
+}
+
+#flashingLight {
+    background-position: -100% -100%;
+}
+
+.selfDefine {
+    background-position: -200% -100%;
+}
+
+/*媒体规则设定各个元素的大小和排布*/
+@media screen and (min-aspect-ratio: 4/3 ) {
+    #main {
+        height: 100vh;
+        width: 100vw;
+        position: fixed;
+        font-size: 3.2vh;
+    }
+
+    #control, #toolbox {
+        width: calc(100vh / 3);
+        height: 100vh;
+    }
+
+    #control {
+        float: left;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #toolbox {
+        float: right;
+    }
+
+
+    #title {
+        height: calc(200vh / 9);
+    }
+
+    #title > div:first-child {
+        font-size: calc(25vh / 3);
+        padding-top: 13%;
+    }
+
+    #title > div:last-child {
+        font-size: calc(25vh / 9);
+    }
+
+    .cardSet {
+        height: 15.7vh;
+    }
+
+    #controlBoard {
+        height: 25vh;
+    }
+
+    footer, #drawBroad {
+        flex: 1;
+    }
+
+    #parameter {
+        height: 27.7vh;
+    }
+
+    #parameter > table {
+        min-height: 120px;
+        min-width: 185px;
+    }
+
+    td {
+        font-size: 1.8vh;
+    }
+
+    #runningBroad {
+        height: 12.3vh;
+    }
+
+    #drawBroad {
+        height: 60vh;
+    }
+
+    #view_area {
+        height: 100%;
+        width: auto;
+        overflow: hidden;
+        padding: 3vh;
+        box-sizing: border-box;
+    }
+
+
+    .wordPage > canvas {
+
+    }
 }

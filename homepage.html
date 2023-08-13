@@ -4,36 +4,132 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="conways_life_game" name="application_name"/>
-    <meta content="conways,life_game,康威生命游戏，元胞" name="keywords"/>
+    <meta content="conways,life_game,康威生命游戏,元胞" name="keywords"/>
     <link href="homepage_style.css" rel="stylesheet" type="text/css"/>
     <title>Conway'sLifeGame</title>
 </head>
 <body>
-<nav id="menu">
-    <div>
-        <h1 id="page_title">元胞</h1>
-        <h3>Conway&#39;s Life Game</h3>
-    </div>
-    <ul>
-        <li></li>
-        <li></li>
-        <li></li>
-        <li></li>
-    </ul>
-</nav>
-<ul id="control">
-    <li></li>
-</ul>
-<ul id="toolbox">
-    <li></li>
-</ul>
-<div id="view_area">
-    <div class="view_title"></div>
-    <div class="view_page"></div>
-</div>
-<footer>
+<div id="choices"></div>
+<div id="main">
+    <div id="control">
+        <header id="title">
+            <div>生命游戏</div>
+            <div>Conway Life Game</div>
+        </header>
+        <div class="cardSet" id="userCard">
+            <div class="cardKey">
+                <div class="logo1"></div>
+                <div id="userInter">
+                    <span></span><br/>
+                    <span></span>
+                </div>
+            </div>
+            <div class="cardCover"></div>
+        </div>
+        <div class="cardSet" id="wordCard">
+            <div class="cardKey signed">
+                <div id="wordInter">
+                    <span></span><br>
+                    <span></span>
+                </div>
+            </div>
+            <div class="cardCover"></div>
+        </div>
+        <div id="controlBoard">
+            <div>
+                <button class="logo1" id="downLoadWord">
+                </button>
+                <button class="logo1" id="printScreen">
+                </button>
+                <button class="logo1" id="printWord"></button>
+            </div>
+            <div>
+                <button class="logo1" id="displayModelSwitch">
+                </button>
+                <button class="logo1 " id="fitScreen">
+                </button>
+                <button class="logo1 lightButton lightUnSign" id="gridLine"></button>
+            </div>
 
-</footer>
+        </div>
+        <footer>
+            <a href="" id="signature"></a>
+        </footer>
+    </div>
+    <div id="toolbox">
+        <div id="parameter">
+            <table>
+                <tbody>
+                <tr>
+                    <td class="light"><span>越界循环</span><span></span></td>
+                    <td class="number"><span>演化步数</span><span></span></td>
+                </tr>
+                <tr>
+                    <td class="number"><span>宽度</span><span></span></td>
+                    <td class="number"><span>高度</span><span></span></td>
+                </tr>
+                <tr>
+                    <td class="modifiable number"><span>演化速度</span><span></span></td>
+                    <td class="modifiable number"><span>显示帧率</span><span></span></td>
+                </tr>
+                <tr>
+                    <td class="modifiable number"><span>剩余步数</span><span></span></td>
+                    <td class="modifiable number"><span>比例尺1:</span><span></span></td>
+                </tr>
+                </tbody>
+            </table>
+            <div class="modifiable" id="controller">
+                <span id="decrease"></span><span id="bar"></span><span id="increase"></span>
+            </div>
+        </div>
+        <div id="runningBroad">
+            <button class="logo1 lightButton lightUnSign" id="on-off">
+            </button>
+            <button class="logo1" id="step">
+            </button>
+            <button class="logo1 lightButton lightUnSign" id="backgrounder"></button>
+        </div>
+        <div id="drawBroad">
+            <div id="pantingTool">
+                <button class="logo1 lightButton lightUnSign" id="pen">
+                </button>
+                <button class="logo1 lightButton lightUnSign" id="signet">
+                </button>
+                <button class="logo1 lightButton lightUnSign" id="cropping"></button>
+            </div>
+            <div id="pantingModel">
+                <button class="logo1 lightButton lightUnSign" id="union">
+                </button>
+                <button class="logo1 lightButton lightUnSign" id="intersection">
+                </button>
+                <button class="logo1 lightButton lightUnSign" id="erase">
+                </button>
+                <button class="logo1 lightButton lightUnSign" id="reverse"></button>
+            </div>
+            <div id="signetSet">
+                <button class="logo2" id="block">
+                </button>
+                <button class="logo2" id="glider">
+                </button>
+                <button class="logo2" id="beehive">
+                </button>
+                <button class="logo2" id="flashingLight">
+                </button>
+                <button class="logo2"></button>
+                <button class="logo2"></button>
+            </div>
+            <div id="signetPreview">
+                <canvas></canvas>
+            </div>
+        </div>
+    </div>
+    <div id="view_area">
+
+    </div>
+</div>
+<div id="moreDetails">
+
+</div>
 </body>
 <script rel="script" src="server.js"></script>
 <script rel="script" src="conductor.js"></script>

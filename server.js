@@ -83,7 +83,7 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
     this.setWordInterval = function (ms = 100) {
         wordInterval = ms > minInterval ? ms : minInterval;
         if (active)
-            this.stepOn()
+            this.stepOn();
     };
     //获取世界演化状态的函数
     this.getActive = function () {
@@ -93,11 +93,20 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
     this.stop = function () {
         active = false
     };
+    //用于演化计算过程的数组
+    let a = new Array(this.Max_Y + 2);
+    //存活和繁衍规则
+
+    this.alive = function (i, j) {
+        if (this.data[i - 2][j - 2]) {
+            return a[i][j] === 3 || a[i][j] === 4;
+        } else {
+            return a[i][j] === 3;
+        }
+    };
     //使生命演化 1 步的函数
     this.step = function () {
         //按照是否循环对数组进行初始化
-        let a = new Array(this.Max_Y + 2);
-        //a.fill(new Array(this.Max_X+2), 0, this.Max_Y + 2);
         if (this.isloop) {//是则在新数组中将数据居中平铺
             a[0] = this.data[this.Max_Y - 1].concat(this.data[this.Max_Y - 1][0]);
             a[0].unshift(this.data[this.Max_Y - 1][this.Max_X - 1]);
@@ -108,10 +117,12 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
             a[this.Max_X + 1] = this.data[0].concat([this.data[0][0]]);
             a[this.Max_X + 1].unshift(this.data[0][this.Max_X - 1]);
         } else {//不是则在新数组中居中放置数据，边缘置零
-            a[0].fill(0, 0, this.Max_Y + 2);
-            for (let i = 0; i < this.Max_X; i++)
+            a[0] = new Array(this.Max_X + 2);
+            a[0].fill(0, 0, this.Max_X + 2);
+            for (let i = 0; i < this.Max_Y; i++)
                 a[i + 1] = [0].concat(this.data[i], [0]);
-            a[this.Max_X + 1].fill(0, 0, this.Max_Y + 2);
+            a[this.Max_Y + 1] = new Array(this.Max_X + 2);
+            a[this.Max_Y + 1].fill(0, 0, this.Max_X + 2);
         }
         //求每九格中的细胞数
         for (let i = 0; i < a.length; i++)
@@ -126,24 +137,15 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
         for (let i = a.length - 1; i > 2; i--)
             for (let j = 2; j < a[i].length; j++)
                 a[i][j] -= a[i - 3][j];
-
         //将数据覆写回去
-        function alive(i, j) {
-            if (this.data[i - 2][j - 2]) {
-                return a[i][j] === 3 || a[i][j] === 4;
-            } else {
-                return a[i][j] === 3;
-            }
-        }
-
         for (let i = 2; i < this.Max_X + 2; i++)
             for (let j = 2; j < this.Max_Y + 2; j++) {
-                this.data[i - 2][j - 2] = alive.call(this, i, j);
+                this.data[i - 2][j - 2] = this.alive(i, j);
             }
         stepNum++;
     };
 
-    //持续演化函数,暂时无法清除定时器
+    //持续演化函数
     this.stepOn = new function () {
         let SpaceStepper;
         let steps = 0;
@@ -180,7 +182,7 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
             else active = true;
             SpaceStepper = setInterval(handle.bind(this), wordInterval);
         };
-    }
+    };
     //用于在(x,y)位置放置一个已有空间的复制
     this.add = function (x = 0, y = 0, part = new Space(1, 1, true, [[true]])) {
         if (this.Max_X > part.Max_X && this.Max_Y > part.Max_Y) {
@@ -201,8 +203,8 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
     }
 }
 
-//定义word_view类，绑定一个空间Space和一个含有canvas的div用于显示
-function WordView(page = document.createElement("div"), word = new Space(64, 64, true, 'r3')) {
+//定义word_view类（世界观察器），绑定一个空间Space和一个含有canvas的div用于显示
+function WordView(page = document.createElement("div"), word = new Space(64, 64, true, 'b')) {
     //存储世界内容
     this.word = word;
     //世界显示频率，默认与世界演化速率一致
@@ -211,21 +213,28 @@ function WordView(page = document.createElement("div"), word = new Space(64, 64,
     let follow = false;
     //显示比例:默认每zoom=100个元胞显示成800*800个像素px，zoom>0
     this.zoom = 1000;//放大显示
-    //显示起始点
+    //显示的起始点
     this.start = {x: 0, y: 0};
     //色彩搭配集合
     this.colorValue = colorSetBase;
-    //画布
+    //画布画布大小难以通过css控制
     let ca = document.createElement("canvas");
-    ca.width = this.word.Max_X * 8;
-    ca.height = this.word.Max_Y * 8;
     //X轴
     let X_axis = document.createElement("div");
     //Y轴
     let Y_axis = document.createElement("div");
     //画布内容控制类
     let view = ca.getContext("2d");
+    //构建类的代码第一部分，完成HTML结构架构和css绑定
+    ca.width = this.word.Max_X * 8;
+    ca.height = this.word.Max_Y * 8;
+    page.append(ca, X_axis, Y_axis);
+    page.className = "wordPage";
 
+    //获取被绑定的dom元素,方便先创建再绑定
+    this.getPage = function () {
+        return page;
+    }
 
     //放大显示
     function enlarge() {
@@ -313,9 +322,8 @@ function WordView(page = document.createElement("div"), word = new Space(64, 64,
     this.print_to = function (type = 'png') {
         let imgdata = view.getImageData(0, 0, view.width, view.height);
     }
-    //构建类的代码
-    page.append(ca, X_axis, Y_axis);
-    page.className = "view_page";
+
+    //类构建第二部分，调用函数完成显示
     this.show();
 }
 
