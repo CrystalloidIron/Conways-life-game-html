@@ -4,7 +4,7 @@ const User_inter = document.getElementById("userInter");
 const word_inter = document.getElementById("wordInter");
 //现存世界观察器的列表
 let wordViews = [];
-
+let focusedOne;
 
 //一些常用的函数
 //测试某个函数用时
@@ -30,16 +30,29 @@ function begin() {
 
     View_area.append(document.createElement('div'));
     wordViews.push(new WordView(View_area.lastElementChild, new Space(64, 64, true, 'r3')));
-    wordViews.focusedOne = wordViews[0];
-    View_area.onclick = function () {
-        if (wordViews.focusedOne.getFollow()) {
-            wordViews.focusedOne.stopFollow();
-            wordViews.focusedOne.word.stop();
-        } else {
-            wordViews.focusedOne.word.stepOn(1000);
-            wordViews.focusedOne.display(1000);
-        }
+    focusedOne = wordViews[0];
+
+}
+
+
+//事件绑定
+View_area.onclick = function () {
+    if (focusedOne.getFollow()) {
+        focusedOne.stopFollow();
+        focusedOne.word.stop();
+    } else {
+        focusedOne.word.stepOn(1000);
+        focusedOne.display(1000);
     }
+}
+document.getElementById("downLoadWord").onclick = function () {
+    focusedOne.word.Save();
+}
+document.getElementById("printScreen").onclick = function () {
+    focusedOne.printScreen();
+}
+document.getElementById("printWord").onclick = function () {
+    focusedOne.printWord();
 }
 
 

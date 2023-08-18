@@ -233,13 +233,36 @@ footer > a {
 #view_area {
     background: var(--graylight);
     box-shadow: var(--recessed);
+    overflow: hidden;
 }
 
 .wordPage {
     height: 100%;
     overflow: hidden;
     background: var(--gray);
-    border: 0.5vh solid var(--graydark);
+    font-size: 0;
+    white-space: nowrap;
+}
+
+.wordPage > canvas {
+    width: calc(100% - 26px);
+    height: calc(100% - 26px);
+    border: 3px solid var(--graydark);
+}
+
+.wordPage > div {
+    position: relative;
+    background: var(--light);
+}
+
+.wordPage > div:nth-child(1) {
+    width: 20px;
+    height: calc(100% - 20px);
+    float: left;
+}
+
+.wordPage > div:nth-child(3) {
+    height: 20px;
 }
 
 .borderWord {
@@ -590,13 +613,7 @@ button {
     #view_area {
         height: 100%;
         width: auto;
-        overflow: hidden;
         padding: 3vh;
         box-sizing: border-box;
-    }
-
-
-    .wordPage > canvas {
-
     }
 }

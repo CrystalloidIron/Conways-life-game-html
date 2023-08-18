@@ -37,9 +37,19 @@ function toColor(n) {
     return undefined;
 }
 
+//用于获取递增序列
+function Sequence() {
+    let a = 0;
+    return function () {
+        return ++a;
+    }
+}
+
+let wordNameList = new Sequence();
+
 //定义’空间’类，用于存储生物的信息
 //参数为：宽(width->X),长(length->Y),循环(isloop),初始数据(data)
-function Space(width = 64, length = 64, isloop = true, data = 'b') {
+function Space(width = 64, length = 64, isloop = true, data) {
     this.Max_X = width;
     this.Max_Y = length;
     this.isloop = isloop;
@@ -67,17 +77,22 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
             this.data = new Array(this.Max_Y).fill(new Array(this.Max_X).fill(false, 0, this.Max_X), 0, this.Max_Y);
         }
     } else if (typeof data === 'object') {
-        for (let i = 0; i < length; i++)
-            for (let j = 0; j < width; j++) // noinspection EqualityComparisonWithCoercionJS
-                this.data[i][j] = 0 != data[i][j];
+        this.data = new Array(length);
+        for (let i = 0; i < length; i++) {
+            this.data[i] = new Array(width);
+            for (let j = 0; j < width; j++)
+                this.data[i][j] = !!data[i][j];
+        }
+    } else {
+        this.data = new Array(this.Max_Y).fill(new Array(this.Max_X).fill(false, 0, this.Max_X), 0, this.Max_Y);
     }
     //获取演化步数的函数
     this.getStep = function () {
         return stepNum
     };
     //获取演化最低间隔时长的函数
-    this.getWordInterval = function () {
-        return wordInterval
+    this.getMinInterval = function () {
+        return wordInterval;
     };
     //修改演化最低时间间隔的函数,可在演化过程中修改，会重置定时触发器
     this.setWordInterval = function (ms = 100) {
@@ -96,7 +111,6 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
     //用于演化计算过程的数组
     let a = new Array(this.Max_Y + 2);
     //存活和繁衍规则
-
     this.alive = function (i, j) {
         if (this.data[i - 2][j - 2]) {
             return a[i][j] === 3 || a[i][j] === 4;
@@ -183,7 +197,28 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
             SpaceStepper = setInterval(handle.bind(this), wordInterval);
         };
     };
-    //用于在(x,y)位置放置一个已有空间的复制
+
+    //用于旋转翻转内容,可使用“+,-,x,y"分别代表正旋90deg,逆旋90deg,x轴左右翻转，y轴上下翻转,待定义
+    this.transformation = function (a = "+") {
+        switch (a) {
+            case "+": {
+
+                break;
+            }
+            case "-": {
+                break;
+            }
+            case "x": {
+                break;
+            }
+            case "y": {
+                break;
+            }
+        }
+        return this;
+    }
+
+    //用于在(x,y)位置放置一个已有空间的复制,待完善
     this.add = function (x = 0, y = 0, part = new Space(1, 1, true, [[true]])) {
         if (this.Max_X > part.Max_X && this.Max_Y > part.Max_Y) {
             if (this.isloop) {
@@ -201,17 +236,30 @@ function Space(width = 64, length = 64, isloop = true, data = 'b') {
         } else
             return false;
     }
+
+    //打包世界内容，待定义
+    this.Save = function (url = "") {
+
+    }
 }
+
+let signetSet = [];
+signetSet.push(new Space(2, 2, true, [[1, 1], [1, 1]]));
+signetSet.push(new Space(3, 3, true, [[1, 1, 1], [1, 0, 0], [0, 1, 0]]));
+signetSet.push(new Space(4, 3, true, [[0, 1, 1, 0], [1, 0, 0, 1], [0, 1, 1, 0]]));
+signetSet.push(new Space(1, 3, true, [[1], [1], [1]]));
 
 //定义word_view类（世界观察器），绑定一个空间Space和一个含有canvas的div用于显示
 function WordView(page = document.createElement("div"), word = new Space(64, 64, true, 'b')) {
     //存储世界内容
     this.word = word;
+    //世界名称
+    this.wordName = "世界" + wordNameList();
     //世界显示频率，默认与世界演化速率一致
-    let speed = this.word.getWordInterval();
+    let speed = this.word.getMinInterval();
     //跟随世界演化而显示标志，真表示正在跟随，只能被display函数修改
     let follow = false;
-    //显示比例:默认每zoom=100个元胞显示成800*800个像素px，zoom>0
+    //显示比例:默认每zoom=1000对应100个细胞显示成800*800个像素px，zoom>0
     this.zoom = 1000;//放大显示
     //显示的起始点
     this.start = {x: 0, y: 0};
@@ -226,11 +274,10 @@ function WordView(page = document.createElement("div"), word = new Space(64, 64,
     //画布内容控制类
     let view = ca.getContext("2d");
     //构建类的代码第一部分，完成HTML结构架构和css绑定
-    ca.width = this.word.Max_X * 8;
-    ca.height = this.word.Max_Y * 8;
-    page.append(ca, X_axis, Y_axis);
+    page.append(Y_axis, ca, X_axis);
     page.className = "wordPage";
-
+    ca.width = Number(/\d+/.exec(getComputedStyle(ca).width)[0]);
+    ca.height = Number(/\d+/.exec(getComputedStyle(ca).height)[0]);
     //获取被绑定的dom元素,方便先创建再绑定
     this.getPage = function () {
         return page;
@@ -318,11 +365,30 @@ function WordView(page = document.createElement("div"), word = new Space(64, 64,
     this.stopFollow = function () {
         follow = false
     };
-    //用于保存现在界面的图片
-    this.print_to = function (type = 'png') {
-        let imgdata = view.getImageData(0, 0, view.width, view.height);
-    }
+    //用于保存当前世界的全貌图片
+    this.printWord = new function (type = 'png') {
+        let screenList = new Sequence();
+        return function () {
+            let all = document.createElement("canvas");
+            all.height = this.zoom * this.word.Max_Y / 125;
+            all.width = this.zoom * this.word.Max_X / 125;
 
+            let a = document.createElement("a");
+            a.href = all.toDataURL(type);
+            a.download = this.wordName + "截图" + screenList() + ".png";
+            a.click();
+        };
+    }
+    //用于保存现有画布上的图片
+    this.printScreen = new function () {
+        let screenList = new Sequence();
+        return function (type = "png") {
+            let a = document.createElement("a");
+            a.href = ca.toDataURL(type);
+            a.download = this.wordName + "截图" + screenList() + ".png";
+            a.click();
+        };
+    }
     //类构建第二部分，调用函数完成显示
     this.show();
 }
