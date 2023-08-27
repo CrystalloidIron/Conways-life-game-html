@@ -1,3 +1,3 @@
-# conways_lifegame
+# conways_life game
 
 
