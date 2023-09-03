@@ -410,7 +410,7 @@ td > span {
     background: var(--light);
 }
 
-/*logo类的基础结构，具体显示什么logo由具体位置的bg-position决定*/
+/*logo类的基础结构,不同的类对应不同型号的logo和图片源，具体显示什么logo由id选择器的bg-position决定*/
 html > body .logo1 {
     overflow: hidden;
     aspect-ratio: 1/1;
@@ -445,13 +445,14 @@ button {
     position: absolute;
     top: 10%;
     left: 10%;
-    background-color: var(--sign);
-    box-shadow: 0 0 4px var(--sign);
-}
-
-.lightUnSign::after {
     background-color: var(--gray);
     box-shadow: none;
+}
+
+.lightSign::after {
+    background-color: var(--sign);
+    box-shadow: 0 0 4px var(--sign);
+
 }
 
 /*各按钮对应logo*/

@@ -4,37 +4,35 @@
 //基本显示色彩定义
 const colorSetBase = {life: "#6DCC3DFF", background: '#00000000', remain: "#6A8060"};
 
-//自动转换css中的颜色代码,可以从number(INT32)转换为string(符合css要求的),也可以从string(符合css要求的)转为number(INT32)
-function toColor(n) {
-    if (typeof (n) == 'number')
-        if (n <= 0xFFFFFFFF && n >= 0) {
-            let s = '#';
-            if (n <= 0xFFFFFF)
-                s += n.toString(16) + 'FF';
-            else
-                s += n.toString(16);
-            return s;
-        } else return '#FFFFFFFF';
-    if (typeof (n) == 'string')
-        if (n[0] === '#' && n.length < 10) {
-            let a = 0;
-            let x = 0;
-            for (let i = 1; i < n.length; i++) {
-                x = n.charCodeAt(i);
-                if (x < 58 && x > 47)
-                    a += x - 48;
-                else if (x < 71 && x > 64)
-                    a += x - 55;
-                else if (x < 103 && x > 96)
-                    a += x - 87;
-                else return undefined;
-                a *= 16;
+//用于将十六进制色彩码转换为含有rgba八位整型色彩分量的对象;用于ImageData修改单像素值。
+function toRgba(c = colorSetBase.life) {
+    if (/^#(?=[0-9]|[A-F]|[a-e]+)/.test(c)) {
+        let x, y, color = {r: 0, g: 0, b: 0, a: 0};
+        switch (c.length) {
+            case 4:
+            case 5: {
+                x = /[0-9A-Fa-f]/g;
+                break
             }
-            if (a <= 0xFFFFFF)
-                a *= 0xFF;
-            return a;
+            case 7:
+            case 9: {
+                x = /[0-9A-Fa-f]{2}/g;
+                break
+            }
+            default:
+                return color;
         }
-    return undefined;
+        if (c.length === 4 || c.length === 7)
+            color.a = 255;
+        for (let n in color) {
+            y = x.exec(c)
+            if (y !== null)
+                color[n] += Number("0x" + y[0]);
+            else
+                break;
+        }
+        return color;
+    }
 }
 
 //用于获取递增序列
@@ -46,13 +44,43 @@ function Sequence() {
 }
 
 let wordNameList = new Sequence();
-
+//定义用于点与点复合方式的函数；并，交，减，反相
+const union = (x = true, y = true) => x || y;
+const intersection = (x = true, y = true) => x && y;
+const erase = (x = true, y = true) => x === true && y === false;
+const reverse = (x = true, y = true) => x ^ y;
+//定义功能函数用于循环空间的显示,可用于某个函数在参数规律变化下反复执行;
+//参数说明
+const actuator = (handle, body = this, argument = [], times = 1, indexes = [], remains = [], ends = []) => {
+    handle.apply(body, argument);
+    if (times > 2) {
+        const remainArgument = () => {
+            for (let i = 0; i < indexes.length; i++)
+                if (typeof remains[i] === "function")
+                    argument[indexes[i]] = remains[i](argument[indexes[i]]);
+                else if (typeof remains[i] !== "undefined")
+                    argument[indexes[i]] = remains[i];
+        }
+        for (let x = 1; x < times - 1; x++) {
+            remainArgument();
+            handle.apply(body, argument);
+        }
+    }
+    if (times > 1) {
+        for (let i = 0; i < indexes.length; i++)
+            if (typeof ends[i] === "function")
+                argument[indexes[i]] = remains[i](argument[indexes[i]]);
+            else if (typeof remains[i] !== "undefined")
+                argument[indexes[i]] = ends[i];
+        handle.apply(body, argument);
+    }
+}
 //定义’空间’类，用于存储生物的信息
 //参数为：宽(width->X),长(length->Y),循环(isloop),初始数据(data)[y][x]
 function Space(width = 64, length = 64, isloop = true, data) {
     this.Max_X = width;
     this.Max_Y = length;
-    this.isloop = isloop;
+    this.isloop = () => isloop;
     //this.data以二元数组包含布尔类型存储，索引为data[y][x]
     if (typeof (data) === 'string') {
         if (/(^r)/.test(data)) {
@@ -77,10 +105,10 @@ function Space(width = 64, length = 64, isloop = true, data) {
             for (let j = 0; j < width; j++)
                 this.data[i][j] = !!data[i][j];
         }
-    } else {
+    } else {//有问题
         this.data = new Array(this.Max_Y).fill(new Array(this.Max_X).fill(false, 0, this.Max_X), 0, this.Max_Y);
     }
-
+    this.addModle = union;
     //用于演化计算过程的数组
     let a = new Array(this.Max_Y + 2);
     //存活和繁衍规则
@@ -94,15 +122,15 @@ function Space(width = 64, length = 64, isloop = true, data) {
     //使生命演化 1 步的函数
     this.step = function () {
         //按照是否循环对数组进行初始化
-        if (this.isloop) {//是则在新数组中将数据居中平铺
+        if (this.isloop()) {//是则在新数组中将数据居中平铺
             a[0] = this.data[this.Max_Y - 1].concat(this.data[this.Max_Y - 1][0]);
             a[0].unshift(this.data[this.Max_Y - 1][this.Max_X - 1]);
-            for (let i = 0; i < this.Max_X; i++) {
+            for (let i = 0; i < this.Max_Y; i++) {
                 a[i + 1] = this.data[i].concat([this.data[i][0]]);
                 a[i + 1].unshift(this.data[i][this.Max_X - 1]);
             }
-            a[this.Max_X + 1] = this.data[0].concat([this.data[0][0]]);
-            a[this.Max_X + 1].unshift(this.data[0][this.Max_X - 1]);
+            a[this.Max_Y + 1] = this.data[0].concat([this.data[0][0]]);
+            a[this.Max_Y + 1].unshift(this.data[0][this.Max_X - 1]);
         } else {//不是则在新数组中居中放置数据，边缘置零
             a[0] = new Array(this.Max_X + 2);
             a[0].fill(0, 0, this.Max_X + 2);
@@ -125,8 +153,8 @@ function Space(width = 64, length = 64, isloop = true, data) {
             for (let j = 2; j < a[i].length; j++)
                 a[i][j] -= a[i - 3][j];
         //将数据覆写回去
-        for (let i = 2; i < this.Max_X + 2; i++)
-            for (let j = 2; j < this.Max_Y + 2; j++) {
+        for (let i = 2; i < this.Max_Y + 2; i++)
+            for (let j = 2; j < this.Max_X + 2; j++) {
                 this.data[i - 2][j - 2] = this.alive(i, j);
             }
     };
@@ -172,19 +200,20 @@ function Space(width = 64, length = 64, isloop = true, data) {
         return this;
     }
 
+
     //用于在(x,y)位置放置一个已有空间的复制,待完善
     this.add = function (x = 0, y = 0, part = new Space(1, 1, true, [[true]])) {
         if (this.Max_X > part.Max_X && this.Max_Y > part.Max_Y) {
-            if (this.isloop) {
-                for (let i = x, ii = 0; i < part.Max_X; i = (i + 1) % this.Max_X, ii++)
-                    for (let j = y, jj = 0; j < part.Max_Y; j = (j + 1) % this.Max_Y, jj++)
-                        if (part.data[ii][jj])
-                            this.data[i][j] = !this.data[i][j];
+            if (this.isloop()) {
+                for (let i = x % this.Max_X, ii = 0; ii < part.Max_X; i = (i + 1) % this.Max_X, ii++)
+                    for (let j = y % this.Max_Y, jj = 0; jj < part.Max_Y; j = (j + 1) % this.Max_Y, jj++)
+                        this.data[i][j] = this.addModle(this.data[i][j], part[ii][jj]);
             } else {
                 for (let i = x, ii = 0; i < this.Max_X && ii < part.Max_X; i++, ii++)
-                    for (let j = y, jj = 0; i < this.Max_Y && jj < part.Max_Y; j++, jj++)
-                        if (part.data[ii][jj])
-                            this.data[i][j] = !this.data[i][j];
+                    if (i >= 0)
+                        for (let j = y, jj = 0; i < this.Max_Y && jj < part.Max_Y; j++, jj++)
+                            if (j >= 0)
+                                this.data[i][j] = this.addModle(this.data[i][j], part[ii][jj]);
             }
             return true;
         } else
@@ -218,13 +247,6 @@ function Space(width = 64, length = 64, isloop = true, data) {
         URL.revokeObjectURL(a.href);
     }
 }
-
-//一些常见的结构
-let signetSet = [];
-signetSet.push(new Space(2, 2, true, [[1, 1], [1, 1]]));
-signetSet.push(new Space(3, 3, true, [[1, 1, 1], [1, 0, 0], [0, 1, 0]]));
-signetSet.push(new Space(4, 3, true, [[0, 1, 1, 0], [1, 0, 0, 1], [0, 1, 1, 0]]));
-signetSet.push(new Space(1, 3, true, [[1], [1], [1]]));
 
 class ActiveSpace extends Space {
     //世界演化状态标志，真意味着此时世界正在自动演化,对外只读，只能通过stepOn和stop方法修改
@@ -358,7 +380,8 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
     let gridLine = false;
     //显示比例:默认每zoom=1000对应100个细胞显示成800*800个像素px，zoom>0
     let zoom = 1000;//放大显示
-    //显示的起始点
+    let dotSize = 8;
+    //显示的起始点，画布左上角在全渲染图片上的坐标，循环时，保证绝对值小于图片对应边全渲染大小，
     let start = [0, 0];
     //色彩搭配集合
     this.colorValue = colorSetBase;
@@ -387,28 +410,18 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
 
     }
 
-    //放大显示，步骤：划定显示范围，生成放大着色表，按着色表进行着色获得图片，放置图片
-    function enlarge() {
-        let dotSize = zoom / 125;
-        let img0 = new ImageData(Math.ceil(this.word.Max_X * dotSize), Math.ceil(this.word.Max_Y * dotSize));
-        //颜色机制有待修改
-        let lifeColor = 0xFF3DCC6D, remainColor = 0xFF66ccFF * 0.1, fill;
-        for (let j = 0, a = new Uint32Array(img0.data.buffer); j < this.word.Max_Y; j++)
-            for (let jj = 0; jj < this.word.Max_X; jj++) {
+    //将表中[sx,xy]起，到[ex,ey]处绘制到canvas上,请保证该范围不会越界,需要预设好dotSize和view。fillStyle
+    const drawImg = (sx, sy, ex, ey, photoStart = start) => {
+        let dot = Math.floor(dotSize);
+        for (let j = sy; j < ey; j++)
+            for (let jj = sx; jj < ex; jj++) {
                 if (this.word.data[j][jj])
-                    fill = lifeColor;
-                else
-                    fill = 0;
-                for (let i = (j * img0.width + jj) * dotSize; i < (j + 1) * dotSize * img0.width; i += img0.width)
-                    for (let ii = Math.ceil(i), e = i + dotSize; ii < e; ii++)
-                        a[ii] = fill;
+                    view.fillRect(Math.floor(jj * dotSize - photoStart[0]), Math.floor(j * dotSize - photoStart[1]), dot, dot);
             }
-        view.putImageData(img0, start[0], start[1]);
-        //console.log(img0);
     }
 
+    //放大显示
     function enlarges() {
-        let dotSize = zoom / 125;
         let startPart = [Math.ceil(start[0] / dotSize),
             Math.ceil(start[1] / dotSize),
             Math.floor(start[0] / dotSize + this.word.Max_X),
@@ -423,20 +436,50 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
             }
     }
 
-    //缩小显示。待定义
-    function dwindle() {//缩小显示
-
-    }
-
     //展示空间中以(x,y)为起点，zoom为倍率的部分到画布的内容view中
     this.show = function () {
         ca.height = ca.clientHeight;
         ca.width = ca.clientWidth;
-
+        view.clearRect(0, 0, ca.width, ca.height)
         if (zoom >= 125) {
-            enlarges.call(this);
-        } else
-            dwindle.call(this);
+            view.fillStyle = this.colorValue.life;
+            let sx = 0, sy = 0, ex = this.word.Max_X, ey = this.word.Max_Y;
+            if (start[0] > 0)
+                sx = Math.floor(start[0] / dotSize);
+            if (start[1] > 0)
+                sy = Math.floor(start[1] / dotSize);
+            if (ca.width + start[0] < ex * dotSize)
+                ex = Math.ceil((ca.width + start[0]) / dotSize);
+            if (ca.height + start[1] < ey * dotSize)
+                ey = Math.ceil((ca.height + start[1]) / dotSize);
+            if (this.word.isloop()) {
+                let px = this.word.Max_X * dotSize, py = this.word.Max_Y * dotSize;
+                let repeatX = Math.ceil((start[0] + ca.width) / px),
+                    repeatY = Math.ceil((start[1] + ca.height) / py);
+                const addY = (s) => {
+                    return [s[0], s[1] - py]
+                }
+                const addX = (s) => {
+                    s[0] = 0;
+                    s[1] = sy;
+                    s[2] = this.word.Max_X;
+                    s[3] = ey;
+                    s[4] = [s[4][0] - px, start[1]];
+                    return s;
+                }
+                let endY = Math.ceil(((start[1] + ca.height) / py + 1 - repeatY) * this.word.Max_Y),
+                    endX = Math.ceil(((start[0] + ca.width) / px + 1 - repeatX) * this.word.Max_X);
+                actuator(actuator, this, [drawImg, this, [sx, sy, ex, ey, start], repeatY,
+                        [1, 3, 4],
+                        [0, undefined, addY],
+                        [0, endY, addY]],
+                    repeatX, [2],
+                    [addX],
+                    [[0, sy, endX, ey, [start[0] - (repeatX - 1) * px, start[1]]]]);
+            } else {
+                drawImg(sx, sy, ex, ey);
+            }
+        }
     }
 
     //跟随世界演化以一定帧率上限显示(受限于显示速率speed）
@@ -467,7 +510,7 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
             } else {
                 clearInterval(wordDisplayer);
                 //时长测试代码
-                console.log(avgTime / flashCount);
+                console.log(avgTime, flashCount, avgTime / flashCount);
                 flashCount = 0;
                 //
                 follow = false;
@@ -501,24 +544,48 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
     this.gridLineChange = function () {
         gridLine = !gridLine;
     }
-    this.scale = function (num = 0.2) {
-        zoom += num * zoom;
-        if (zoom < 125) zoom = 125;
-        if (zoom > 10000) zoom = 10000;
-        this.show();
+    //在倍率，显示位置修改后调用，以保证参数合格,并视情况重绘图案；
+    const displayChange = () => {
+        if (this.word.isloop()) {
+            start[0] = start[0] % (dotSize * this.word.Max_X);
+            start[1] = start[1] % (dotSize * this.word.Max_Y);
+            start[0] = start[0] >= 0 ? start[0] : start[0] + (dotSize * this.word.Max_X);
+            start[1] = start[1] >= 0 ? start[1] : start[1] + (dotSize * this.word.Max_Y);
+        }
+        if (!follow)
+            this.show();
+    }
+    //平移移动
+    this.move = function (dx = 0, dy = 0) {
+        start = [start[0] + dx, start[1] + dy];
+        displayChange();
+    }
+    //放缩为原来的num倍，最大值到10倍，最小为1/8，以画布[rx,ry]处为参考点
+    this.scale = function (num = 0.2, rx = 0, ry = 0) {
+        zoom = num * zoom;
+        if (zoom < 125) {
+            num = 125 / zoom * num;
+            zoom = 125;
+        } else if (zoom > 10000) {
+            num = 10000 / zoom * num;
+            zoom = 10000;
+        }
+        dotSize = zoom / 125;
+        start = [((start[0] + rx) * num - rx), ((start[1] + ry) * num - ry)];
+        displayChange();
     }
     this.getZoom = function () {
         return zoom;
     }
     //显示异常时用于还原屏幕
     this.fitScreen = function () {
-        follow = false;
         ca.width = ca.clientWidth;
         ca.height = ca.clientHeight;
         zoom = 1000;
+        dotSize = 8;
         start = [0, 0];
         gridLine = false;
-        this.show();
+        displayChange();
     }
 
     //用于保存当前世界的全貌图片，等待渲染器重写
@@ -526,8 +593,9 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
         let screenList = new Sequence();
         return function () {
             let all = document.createElement("canvas");
-            all.height = zoom * this.word.Max_Y / 125;
-            all.width = zoom * this.word.Max_X / 125;
+            all.height = 8 * this.word.Max_Y;
+            all.width = 8 * this.word.Max_X;
+
 
             let a = document.createElement("a");
             a.href = all.toDataURL(type);
@@ -549,32 +617,49 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
     this.show();
 }
 
-function Preview(caElement, Space) {
+//用于预览印章全貌
+function Preview(caElement, space = new Space()) {
     this.ca = caElement;
-    this.word = Space;
+    this.word = space;
     this.colorValue = colorSetBase;
-    with (this.ca) {
-        height = clientHeight;
-        width = clientWidth;
-    }
-    let view = this.ca.getContext("2d")
+    let view = this.ca.getContext("2d");
     this.show = function () {
+        this.fit();
         let dotSize = Math.min(this.ca.width / this.word.Max_X, this.ca.height / this.word.Max_Y)
+        let sx = (this.ca.width - (this.word.Max_X * dotSize)) / 2;
+        let sy = (this.ca.height - (this.word.Max_Y * dotSize)) / 2;
         if (dotSize >= 1) {
+            view.fillStyle = this.colorValue.life;
             for (let j = 0; j < this.word.Max_Y; j++)
                 for (let jj = 0; jj < this.word.Max_X; jj++) {
                     if (this.word.data[j][jj])
-                        view.fillStyle = this.colorValue.life;
-                    else
-                        view.fillStyle = this.colorValue.background;
-                    view.fillRect(Math.ceil(jj * dotSize), Math.ceil(j * dotSize), Math.ceil(dotSize), Math.ceil(dotSize));
+                        view.fillRect(Math.ceil(sx + jj * dotSize), Math.ceil(sy + j * dotSize), Math.ceil(dotSize), Math.ceil(dotSize));
                 }
         } else {
-
+            let Vx = dotSize * this.word.Max_X, Vy = dotSize * this.word.Max_Y;
+            let img = new ImageData(this.word.Max_X, this.word.Max_Y);
+            let life = toRgba(this.colorValue.life);
+            for (let i = 0, d = img.data; i < this.word.Max_X; i++)
+                for (let ii = 0; ii < this.word.Max_Y; ii++)
+                    if (this.word.data[ii][i]) {
+                        let k = (i * this.word.Max_Y + ii) * 4;
+                        d[k++] = life.r;
+                        d[k++] = life.g;
+                        d[k++] = life.b;
+                        d[k] = life.a;
+                    }
+            view.putImageData(img, sx, sy, 0, 0, Vx, Vy);
         }
     }
     this.changeSpace = function (Space) {
-
+        this.word = Space;
+        this.show();
+    }
+    this.fit = function () {
+        with (this.ca) {
+            height = clientHeight;
+            width = clientWidth;
+        }
     }
 }
 
