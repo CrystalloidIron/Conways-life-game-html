@@ -104,7 +104,9 @@ function on_off() {
     if (focusedOne.getFollow()) {
         focusedOne.stopFollow();
         focusedOne.word.stop();
+        document.getElementById("on-off").classList.remove("lightSign");
     } else {
+        document.getElementById("on-off").classList.add("lightSign");
         focusedOne.word.stepOn(1000);
         focusedOne.display(1000);
     }
@@ -160,11 +162,9 @@ View_area.addEventListener("mousedown", function (ev) {
     if (ev.ctrlKey)
         if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
             let sx = ev.clientX, sy = ev.clientY, click;
-            const saveEvent = () => {
-                click = View_area.onclick;
-                View_area.onclick = () => {
-                    restore();
-                }
+            click = View_area.onclick;
+            View_area.onclick = () => {
+                restore();
             }
             const restore = () => {
                 View_area.onmousemove = null;
@@ -177,7 +177,6 @@ View_area.addEventListener("mousedown", function (ev) {
                     sy = ev.clientY;
                 }
             }
-            saveEvent();
         }
 })
 
@@ -200,31 +199,33 @@ document.getElementById("fitScreen").onclick = function () {
 document.getElementById("gridLine").onclick = function () {
     focusedOne.gridLineChange();
 }
-document.getElementById("on-off").onclick = function () {
+document.getElementById("runningBroad").onclick = function () {
     View_area.onclick = on_off;
-    on_off();
 }
+document.getElementById("on-off").onclick = on_off;
 document.getElementById("step").onclick = function () {
-    if (focusedOne.word.active) {
-    } else {
+    if (!focusedOne.word.active) {
         focusedOne.word.step();
         focusedOne.show();
     }
 }
-document.getElementById("backgrounder").onclick = function () {
+document.getElementById("backgrounder").onclick = function (ev) {
     if (focusedOne.word.active) {
         alert("正在演化运行中！请暂停后再操作");
     } else {
         let remainSteps = Number(/[0-9]+/.exec(document.getElementById("remainStep").innerHTML)[0]);
         if (remainSteps) {
-            if (remainSteps > 1000) {
+            if (remainSteps > 10000) {
                 alert("步数过多！请重设")
                 document.getElementById("remainStep").innerHTML = "0";
             } else {
-                for (let i = remainSteps; i > 0; i--) {
-                    focusedOne.word.step();
+                ev.target.classList.add("lightSign");
+                const waite = () => {
+                    focusedOne.word.backgrounder(remainSteps);
+                    focusedOne.show();
+                    ev.target.classList.remove("lightSign");
                 }
-                focusedOne.show();
+                let t = setTimeout(waite, 5);
             }
         } else {
             if (remainSteps !== 0)

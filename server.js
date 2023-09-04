@@ -49,8 +49,10 @@ const union = (x = true, y = true) => x || y;
 const intersection = (x = true, y = true) => x && y;
 const erase = (x = true, y = true) => x === true && y === false;
 const reverse = (x = true, y = true) => x ^ y;
-//定义功能函数用于循环空间的显示,可用于某个函数在参数规律变化下反复执行;
-//参数说明
+//定义功能函数用于循环空间的显示,可用于某个函数在参数规律变化下反复执行，调用至少会执行一次;
+//参数说明handle:要执行的目标函数,body目标函数的this指向,argument第一次执行的参数列表,times执行的次数(非零正整数),
+// indexes需要改变的参数在argument列表中的序列号,remains参数的中间的值/变化方式,ends参数最后一次执行的值/变化方式，
+// 最后三个列表必须有一样的长度。remains和ends里的参数可以是一个要赋值的参数，也可以是一个箭头函数，接受上一次执行时对应位置的参数值，返回下一次执行时需要的值。
 const actuator = (handle, body = this, argument = [], times = 1, indexes = [], remains = [], ends = []) => {
     handle.apply(body, argument);
     if (times > 2) {
@@ -297,6 +299,15 @@ class ActiveSpace extends Space {
             SpaceStepper = setInterval(handle.bind(this), this.wordInterval);
         };
     };
+    //后台运行函数
+    backgrounder = (num = 1) => {
+        if (!this.#active) {
+            this.#active = true;
+            for (let i = 0; i < num; i++)
+                this.step();
+            this.#active = false;
+        }
+    }
 
     constructor(width = 64, length = 64, isloop = true, data) {
         super(width, length, isloop, data);
