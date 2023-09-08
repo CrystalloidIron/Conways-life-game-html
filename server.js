@@ -209,13 +209,13 @@ function Space(width = 64, length = 64, isloop = true, data) {
             if (this.isloop()) {
                 for (let i = x % this.Max_X, ii = 0; ii < part.Max_X; i = (i + 1) % this.Max_X, ii++)
                     for (let j = y % this.Max_Y, jj = 0; jj < part.Max_Y; j = (j + 1) % this.Max_Y, jj++)
-                        this.data[i][j] = this.addModle(this.data[i][j], part[ii][jj]);
+                        this.data[j][i] = this.addModle(this.data[j][i], part.data[jj][ii]);
             } else {
                 for (let i = x, ii = 0; i < this.Max_X && ii < part.Max_X; i++, ii++)
                     if (i >= 0)
                         for (let j = y, jj = 0; i < this.Max_Y && jj < part.Max_Y; j++, jj++)
                             if (j >= 0)
-                                this.data[i][j] = this.addModle(this.data[i][j], part[ii][jj]);
+                                this.data[j][i] = this.addModle(this.data[j][i], part.data[jj][ii]);
             }
             return true;
         } else
@@ -403,7 +403,7 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
     //Y轴
     let Y_axis = document.createElement("div");
     //画布内容控制类
-    let view = ca.getContext("2d");
+    let view = ca.getContext("2d", {willReadFrequently: true});
     //构建类的代码第一部分，完成HTML结构架构和css绑定
     page.append(Y_axis, ca, X_axis);
     page.className = "wordPage";
@@ -585,8 +585,36 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
         start = [((start[0] + rx) * num - rx), ((start[1] + ry) * num - ry)];
         displayChange();
     }
-    this.getZoom = function () {
-        return zoom;
+    this.getDotSize = function () {
+        return dotSize;
+    }
+    //输入鼠标相对于page左上角的坐标，返回所指的点左上角的坐标
+    this.getDotStart = function (rx = 0, ry = 0) {
+        rx = Math.floor(Math.floor((rx - 23 + start[0]) / dotSize) * dotSize - start[0]) + 23;
+        ry = Math.floor(Math.floor((ry - 3 + start[1]) / dotSize) * dotSize - start[1]) + 3;
+        return [rx, ry];
+    }
+    this.getDotIndexByPosition = function (rx = 0, ry = 0) {
+        rx = Math.floor((rx - 23 + start[0]) / dotSize);
+        ry = Math.floor((ry - 3 + start[1]) / dotSize);
+        if (this.word.isloop()) {
+            rx = rx % this.word.Max_X;
+            ry = ry % this.word.Max_Y;
+            rx = rx >= 0 ? rx : rx + this.word.Max_X;
+            ry = ry >= 0 ? ry : ry + this.word.Max_Y;
+        } else {
+            if (rx < 0 || ry < 0 || rx >= this.word.Max_X || ry >= this.word.Max_Y)
+                return false;
+        }
+        return [rx, ry];
+    }
+    //获取画布上某个相对位置的点的生死状况，返回布尔值
+    this.getDotByPosition = function (rx = 0, ry = 0) {
+        let i = this.getDotIndexByPosition(rx, ry);
+        if (i)
+            return this.word.data[i[1]][i[0]];
+        else
+            return false;
     }
     //显示异常时用于还原屏幕
     this.fitScreen = function () {
@@ -608,9 +636,10 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
             all.width = 8 * this.word.Max_X;
 
 
+
             let a = document.createElement("a");
             a.href = all.toDataURL(type);
-            a.download = this.wordName + "截图" + screenList() + ".png";
+            a.download = this.wordName + "图片" + screenList() + ".png";
             a.click();
         };
     }
@@ -623,6 +652,9 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
             a.download = this.wordName + "截图" + screenList() + ".png";
             a.click();
         };
+    }
+    this.getImage = function (sx, sy, w, h) {
+        return view.getImageData(sx, sy, w, h);
     }
     //类构建第二部分，调用函数完成显示
     this.show();

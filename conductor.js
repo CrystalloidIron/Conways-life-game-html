@@ -27,66 +27,235 @@ function testTime(handle, log = true) {
         return (end - start);
 }
 
-//用于画笔工具，裁剪工具和运行工具的转换
-//画笔工具管理类
-function pen(ev) {
-
-}
-
 //印章工具管理类
 //负责管理印章的选择，预览和效果预览,以及印章捕获等等
-const Signet = new function () {
+const Draw = new function () {
+    let chosen = null;
     let signIndex = 0;
     let prePlace = document.createElement("canvas");
     prePlace.id = "prePlace";
+    let prePlaceCRC = prePlace.getContext("2d");
     let signetPrePlace = new Preview(prePlace, signetSet[signIndex]);
     let signetPreview = new Preview(SignetPreview.firstElementChild, signetSet[0]);
+    signetPreview.show();
     let cropMark = document.createElement("div");
     cropMark.id = "cropMark";
-    let cropPart = document.createElement("div");
-    cropPart.id = "cropPart";
+
+    this.changeTool = function (s = "") {
+        if (chosen && s === chosen) {
+            s = null;
+        }
+        if (s !== chosen) {
+            switch (chosen) {
+                case"pen": {
+                    View_area.onmousemove = undefined;
+                    View_area.onmousedown = undefined;
+                    prePlace.style.top = "";
+                    prePlace.style.left = "";
+                    break
+                }
+                case"signet": {
+                    prePlace.width = focusedOne.getDotSize();
+                    prePlace.height = focusedOne.getDotSize();
+                    View_area.onmouseover = undefined;
+                    View_area.onclick = undefined;
+                    break
+                }
+                case "crop": {
+                    prePlace.style.opacity = "";
+                    prePlace.style.border = "";
+                    prePlace.style.top = "";
+                    prePlace.style.left = "";
+                    prePlace.width = focusedOne.getDotSize();
+                    prePlace.height = focusedOne.getDotSize();
+                    focusedOne.getPage().removeChild(cropMark);
+                    View_area.onmousedown = undefined;
+                    break
+                }
+                default: {
+                    View_area.onclick = null;
+                    prePlace.width = focusedOne.getDotSize();
+                    prePlace.height = focusedOne.getDotSize();
+                    focusedOne.getPage().append(prePlace);
+                    View_area.onclick = undefined;
+                }
+            }
+            switch (s) {
+                case"pen": {
+                    View_area.onmousemove = penHover;
+                    View_area.onmousedown = penDown;
+                    break
+                }
+                case"signet": {
+                    prePlace.width = signetSet[signIndex].Max_X * focusedOne.getDotSize();
+                    prePlace.height = signetSet[signIndex].Max_Y * focusedOne.getDotSize();
+                    View_area.onmouseover = prePlaceFollow;
+                    View_area.onclick = putSignet;
+                    break
+                }
+                case "crop": {
+                    focusedOne.word.stop();
+                    focusedOne.getPage().replaceChild(cropMark, prePlace);
+                    focusedOne.getPage().append(prePlace);
+                    prePlace.style.border = Math.floor(focusedOne.getDotSize() / 4) + "px dotted var(--graylight)";
+                    prePlace.style.opacity = "100%";
+                    View_area.onmousedown = cropBeginPlace;
+                    break
+                }
+                default: {
+                    prePlaceCRC.clearRect(0, 0, prePlace.width, prePlace.height);
+                    focusedOne.getPage().removeChild(prePlace);
+                    View_area.onmousedown = undefined;
+                    View_area.onclick = on_off;
+                    s = null;
+                }
+            }
+            if (chosen)
+                document.getElementById(chosen).classList.remove("lightSign");
+            chosen = s;
+            if (s)
+                document.getElementById(chosen).classList.add("lightSign");
+        }
+    }
     this.changeSignet = function (n = 0) {
         if (n < signetSet.length && n >= 0 && n !== signIndex) {
             signIndex = n;
-            signetPreview.changeSpace(signetSet[0])
+            signetPreview.changeSpace(signetSet[signIndex]);
             signetPrePlace.changeSpace(signetSet[signIndex]);
+            signetPreview.show();
+        }
+    }
+    //画笔悬浮预览,绑定于mouseMove事件
+    const penHover = new function () {
+        let t = null;
+        const follow = (ev) => {
+            prePlace.height = focusedOne.getDotSize();
+            prePlace.width = focusedOne.getDotSize();
+            let p = focusedOne.getDotStart(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
+            prePlace.style.left = p[0] + "px";
+            prePlace.style.top = p[1] + "px";
+            if (focusedOne.word.addModle(focusedOne.getDotByPosition(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop)))
+                prePlaceCRC.fillStyle = focusedOne.colorValue.life;
+            else
+                prePlaceCRC.fillStyle = getComputedStyle(focusedOne.getPage()).backgroundColor;
+            prePlaceCRC.fillRect(0, 0, prePlace.width, prePlace.height);
+        }
+        return (ev) => {
+            if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
+                if (ev.target.id !== "prePlace") {
+                    clearTimeout(t);
+                    t = setTimeout(follow, 50, ev);
+                } else
+                    clearTimeout(t);
+            } else {
+                prePlace.style.left = "";
+                prePlace.style.top = "";
+            }
+        }
+    };
+    //画笔落下
+    const penDown = (ev) => {
+        if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
+            let i = focusedOne.getDotIndexByPosition(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
+            if (i) {
+                focusedOne.word.add(i[0], i[1]);
+                focusedOne.show();
+            }
+            View_area.onmousemove = penDraw;
+            prePlace.style.top = "";
+            prePlace.style.left = "";
+            View_area.onmouseup = () => {
+                View_area.onmousemove = penHover;
+                View_area.onmouseup = undefined;
+            }
+        }
+    }
+    //画笔落下连续移动
+    const penDraw = new function () {
+        let p = [null, null];
+        return (ev) => {
+            if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
+                let pp = focusedOne.getDotIndexByPosition(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
+                if (pp && (p[0] !== pp[0] || p[1] !== pp[1])) {
+                    focusedOne.word.add(pp[0], pp[1]);
+                    focusedOne.show();
+                    p = pp;
+                }
+            }
         }
     }
     //让印章预览位置跟随鼠标的函数
-    const prePlaceFollowMouse = () => {
+    const prePlaceFollow = (ev) => {
+
     };
-    //开启印章预放置功能
-    this.activeSignetPrePlace = function (ev) {
-        focusedOne.getPage().append(prePlace);
-        prePlace.style.display = "none";
-        View_area.addEventListener("mouseover", prePlaceFollowMouse);
-    }
-    //停止预放置功能
-    this.stopSignetPrePlace = function (ev) {
-        View_area.removeEventListener("mouseover", prePlaceFollowMouse)
-        focusedOne.getPage().removeChild(prePlace);
-    }
     //放置印章
-    this.putSignet = function (ev) {
+    const putSignet = (ev) => {
 
     }
+
     //确定起始位置并跟随显示结束位置
-    const cropBeginPlace = () => {
-    }
-    //确定结束位置
-    const cropEndPlace = () => {
-    }
-    //开始捕获准备工作
-    this.activeCrop = function (ev) {
-        focusedOne.getPage().append(cropMark, cropPart);
+    const cropBeginPlace = new function () {
+        let s = [null, null];
+        const cropBegin = (ev) => {
+            if (ev.target.parentNode === focusedOne.getPage()) {
+                let p = focusedOne.getDotStart(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
+                if (p) {
+                    let border = Math.floor(focusedOne.getDotSize() / 4);
+                    prePlace.style.left = p[0] - border + "px";
+                    prePlace.style.top = p[1] - border + "px";
+                    prePlaceCRC.putImageData(focusedOne.getImage((p[0] - 23), (p[1] - 3), prePlace.width, prePlace.height), 0, 0)
+                    s = p;
+                    View_area.onmousedown = cropEnd;
+                    View_area.onmousemove = cropFollow;
+                    View_area.onmouseup = () => {
+                        View_area.onmousemove = undefined;
+                        View_area.onmouseup = undefined;
+                    }
+                }
+            }
+        }
+        const setCropEnd = (pp = [0, 0]) => {
+            pp = [pp[0] + focusedOne.getDotSize(), pp[1] + focusedOne.getDotSize()];
+            prePlace.width = Math.abs(pp[0] - s[0]);
+            prePlace.height = Math.abs(pp[1] - s[1]);
+            let border = Math.floor(focusedOne.getDotSize() / 4), p = [s[0], s[1]];
+            if (pp[0] < s[0])
+                p[0] = pp[0];
+            if (pp[1] < s[1])
+                p[1] = pp[1];
+            prePlace.style.left = p[0] - border + "px";
+            prePlace.style.top = p[1] - border + "px";
+            if (prePlace.width && prePlace.height)
+                prePlaceCRC.putImageData(focusedOne.getImage(p[0] - 23, p[1] - 3, prePlace.width, prePlace.height), 0, 0)
+            View_area.onmousedown = cropDelete;
+        }
+        const cropFollow = (ev) => {
+            let pp = focusedOne.getDotStart(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
+            if (pp && (pp[0] !== s[0] || pp[1] !== s[1])) {
+                setCropEnd(pp);
+            }
+        }
+        //确定结束位置
+        const cropEnd = (ev) => {
+            if (ev.target.parentNode === focusedOne.getPage()) {
+                let p = focusedOne.getDotStart(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
+                if (p) {
+                    setCropEnd(p);
+                }
+            }
+        }
+        //取消框选
+        const cropDelete = () => {
+            s = [null, null];
+            prePlaceCRC.clearRect(0, 0, prePlace.width, prePlace.height);
+            prePlace.style.top = "";
+            prePlace.style.left = "";
+            prePlace.width = focusedOne.getDotSize();
+            prePlace.height = prePlace.width;
+            View_area.onmousedown = cropBegin;
+        }
 
-
-    }
-    //停止捕获结束工作
-    this.stopCrop = function (ev) {
-
-        focusedOne.getPage().remove(cropMark, cropPart);
-        cropPart.style.background = "none";
+        return cropBegin;
     }
     //保存世界片段
     this.saveCrop = function () {
@@ -140,7 +309,7 @@ testTime(begin);
 document.addEventListener("wheel", function (ev) {
         if (ev.ctrlKey) {
             ev.preventDefault();
-            if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
+            if ([].indexOf.call(focusedOne.getPage().childNodes, ev.target) === 1) {
                 if (ev.detail) {
                     if (ev.detail > 0) {
                         focusedOne.scale(1.2, ev.offsetX, ev.offsetY);
@@ -157,7 +326,7 @@ document.addEventListener("wheel", function (ev) {
             }
         }
 }, {passive: false})
-//ctrl+鼠标左键实现拖动画面
+//ctrl+鼠标左键实现拖动画面,仍可优化
 View_area.addEventListener("mousedown", function (ev) {
     if (ev.ctrlKey)
         if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
@@ -181,26 +350,36 @@ View_area.addEventListener("mousedown", function (ev) {
 })
 
 //一些按钮的功能
-document.getElementById("downLoadWord").onclick = function () {
-    focusedOne.word.save("word");
-}
-document.getElementById("printScreen").onclick = function () {
-    focusedOne.printScreen();
-}
-document.getElementById("printWord").onclick = function () {
-    focusedOne.printWord();
-}
-document.getElementById("displayModelSwitch").onclick = function () {
-    displayModeSwitch();
-}
-document.getElementById("fitScreen").onclick = function () {
-    focusedOne.fitScreen();
-}
-document.getElementById("gridLine").onclick = function () {
-    focusedOne.gridLineChange();
+document.getElementById("controlBoard").onclick = function (ev) {
+    switch (ev.target.id) {
+        case"downLoadWord": {
+            focusedOne.word.save("word");
+            break
+        }
+        case "printScreen": {
+            focusedOne.printScreen();
+            break
+        }
+        case "printWord": {
+            focusedOne.printWord();
+            break
+        }
+        case "displayModelSwitch": {
+            displayModeSwitch();
+            break
+        }
+        case"fitScreen": {
+            focusedOne.fitScreen();
+            break
+        }
+        case"gridLine": {
+            focusedOne.gridLineChange();
+            break
+        }
+    }
 }
 document.getElementById("runningBroad").onclick = function () {
-    View_area.onclick = on_off;
+    Draw.changeTool();
 }
 document.getElementById("on-off").onclick = on_off;
 document.getElementById("step").onclick = function () {
@@ -209,39 +388,38 @@ document.getElementById("step").onclick = function () {
         focusedOne.show();
     }
 }
-document.getElementById("backgrounder").onclick = function (ev) {
-    if (focusedOne.word.active) {
-        alert("正在演化运行中！请暂停后再操作");
-    } else {
-        let remainSteps = Number(/[0-9]+/.exec(document.getElementById("remainStep").innerHTML)[0]);
-        if (remainSteps) {
-            if (remainSteps > 10000) {
-                alert("步数过多！请重设")
-                document.getElementById("remainStep").innerHTML = "0";
-            } else {
-                ev.target.classList.add("lightSign");
-                const waite = () => {
-                    focusedOne.word.backgrounder(remainSteps);
-                    focusedOne.show();
-                    ev.target.classList.remove("lightSign");
-                }
-                let t = setTimeout(waite, 5);
-            }
+document.getElementById("backgrounder").onclick = new function () {
+    let running = false;
+    return function (ev) {
+        if (running || focusedOne.word.active) {
+            alert("正在演化运行中！请暂停后再操作");
         } else {
-            if (remainSteps !== 0)
-                alert("请正确输入快进步数！");
+            let remainSteps = Number(/[0-9]+/.exec(document.getElementById("remainStep").innerHTML)[0]);
+            if (remainSteps) {
+                if (remainSteps > 10000) {
+                    alert("步数过多！请重设")
+                    document.getElementById("remainStep").innerHTML = "0";
+                } else {
+                    ev.target.classList.add("lightSign");
+                    running = true;
+                    const waite = () => {
+                        focusedOne.word.backgrounder(remainSteps);
+                        focusedOne.show();
+                        ev.target.classList.remove("lightSign");
+                        running = false;
+                    }
+                    setTimeout(waite, 5);
+                }
+            } else {
+                if (remainSteps !== 0)
+                    alert("请正确输入快进步数！");
+            }
         }
     }
 }
 
-document.getElementById("pen").onclick = function () {
-
-}
-document.getElementById("signet").onclick = function () {
-
-}
-document.getElementById("cropping").onclick = function () {
-
+document.getElementById("pantingTool").onclick = function (ev) {
+    Draw.changeTool(ev.target.id);
 }
 document.getElementById("pantingModel").onclick = new function () {
     let selectedElement = document.getElementById("union");
@@ -250,7 +428,7 @@ document.getElementById("pantingModel").onclick = new function () {
         let e = ev.target;
         if (e.id !== selectedElement.id) {
             //更改复合方式和 预览方式
-            switch (ev.id) {
+            switch (e.id) {
                 case "union": {
                     focusedOne.word.addModle = union;
                     break
@@ -275,5 +453,10 @@ document.getElementById("pantingModel").onclick = new function () {
         }
     }
 }
-
+document.getElementById("signetSet").onclick = function (ev) {
+    if (ev.target.parentNode === document.getElementById("signetSet")) {
+        let x = [].indexOf.call(document.getElementById("signetSet").children, ev.target);
+        Draw.changeSignet(x);
+    }
+}
 
