@@ -2,7 +2,7 @@
 //测试某个函数的运行时间，记得加".call(this)"
 
 //基本显示色彩定义
-const colorSetBase = {life: "#6DCC3DFF", background: '#00000000', remain: "#6A8060"};
+const colorSetBase = {life: "#6DCC3DFF", background: '#C5CCC5FF', remain: "#6A8060"};
 
 //用于将十六进制色彩码转换为含有rgba八位整型色彩分量的对象;用于ImageData修改单像素值。
 function toRgba(c = colorSetBase.life) {
@@ -201,11 +201,36 @@ function Space(width = 64, length = 64, isloop = true, data) {
         }
         return this;
     }
-
+    this.cut = function (range = [0, 0, this.Max_X, this.Max_Y]) {
+        if (range.length >= 4) {
+            let data = [];
+            if (isloop)
+                for (let i = 0, ii = range[1]; i < range[3]; i++, ii = (ii + 1) % this.Max_Y) {
+                    data.push([]);
+                    for (let j = 0, jj = range[0]; j < range[2]; j++, jj = (jj + 1) % this.Max_X)
+                        data[i].push(focusedOne.word.data[ii][jj]);
+                }
+            else
+                for (let i = 0, ii = range[1]; i < range[3]; i++, ii++) {
+                    if (ii < 0 || ii >= this.Max_Y)
+                        data.push(new Array(range[2]).fill(false, 0, range[2]))
+                    else {
+                        data.push([]);
+                        for (let j = 0, jj = range[0]; j < range[2]; j++, jj++) {
+                            if (jj < 0 || jj >= this.Max_X)
+                                data[i].push(false);
+                            else
+                                data[i].push(this.data[ii][jj]);
+                        }
+                    }
+                }
+            return new Space(range[2], range[3], isloop, data);
+        } else return undefined;
+    }
 
     //用于在(x,y)位置放置一个已有空间的复制,待完善
     this.add = function (x = 0, y = 0, part = new Space(1, 1, true, [[true]])) {
-        if (this.Max_X > part.Max_X && this.Max_Y > part.Max_Y) {
+        if (this.Max_X >= part.Max_X && this.Max_Y >= part.Max_Y) {
             if (this.isloop()) {
                 for (let i = x % this.Max_X, ii = 0; ii < part.Max_X; i = (i + 1) % this.Max_X, ii++)
                     for (let j = y % this.Max_Y, jj = 0; jj < part.Max_Y; j = (j + 1) % this.Max_Y, jj++)
@@ -602,9 +627,6 @@ function WordView(page = document.createElement("div"), word = new ActiveSpace(6
             ry = ry % this.word.Max_Y;
             rx = rx >= 0 ? rx : rx + this.word.Max_X;
             ry = ry >= 0 ? ry : ry + this.word.Max_Y;
-        } else {
-            if (rx < 0 || ry < 0 || rx >= this.word.Max_X || ry >= this.word.Max_Y)
-                return false;
         }
         return [rx, ry];
     }
@@ -672,11 +694,14 @@ function Preview(caElement, space = new Space()) {
         let sx = (this.ca.width - (this.word.Max_X * dotSize)) / 2;
         let sy = (this.ca.height - (this.word.Max_Y * dotSize)) / 2;
         if (dotSize >= 1) {
-            view.fillStyle = this.colorValue.life;
+            let dot = Math.ceil(dotSize);
             for (let j = 0; j < this.word.Max_Y; j++)
                 for (let jj = 0; jj < this.word.Max_X; jj++) {
                     if (this.word.data[j][jj])
-                        view.fillRect(Math.ceil(sx + jj * dotSize), Math.ceil(sy + j * dotSize), Math.ceil(dotSize), Math.ceil(dotSize));
+                        view.fillStyle = this.colorValue.life;
+                    else
+                        view.fillStyle = this.colorValue.background;
+                    view.fillRect(Math.ceil(sx + jj * dotSize), Math.ceil(sy + j * dotSize), dot, dot);
                 }
         } else {
             let Vx = dotSize * this.word.Max_X, Vy = dotSize * this.word.Max_Y;
@@ -696,7 +721,6 @@ function Preview(caElement, space = new Space()) {
     }
     this.changeSpace = function (Space) {
         this.word = Space;
-        this.show();
     }
     this.fit = function () {
         with (this.ca) {

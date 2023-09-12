@@ -198,6 +198,7 @@ footer > a {
     height: 12.4%;
     padding: 3% 0;
     white-space: nowrap;
+    user-select: none;
     overflow-x: scroll;
     background: var(--graydark);
     box-shadow: var(--recessed);
@@ -553,7 +554,7 @@ button {
     background-position: -100% -100%;
 }
 
-.selfDefine {
+html > body .selfDefine {
     background-position: -200% -100%;
 }
 

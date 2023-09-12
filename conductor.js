@@ -2,16 +2,17 @@
 const View_area = document.getElementById("view_area");
 const User_inter = document.getElementById("userInter");
 const word_inter = document.getElementById("wordInter");
+const SignetSet = document.getElementById("signetSet");
 const SignetPreview = document.getElementById("signetPreview");
 //现存世界观察器的列表
 let wordViews = [];
 let focusedOne;
 //一些常见的结构,用作印章
-let signetSet = [];
-signetSet.push(new Space(4, 4, true, [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]]));
-signetSet.push(new Space(3, 3, true, [[1, 1, 1], [1, 0, 0], [0, 1, 0]]));
-signetSet.push(new Space(4, 3, true, [[0, 1, 1, 0], [1, 0, 0, 1], [0, 1, 1, 0]]));
-signetSet.push(new Space(1, 3, true, [[1], [1], [1]]));
+let signets = [];
+signets.push(new Space(4, 4, true, [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]]));
+signets.push(new Space(3, 3, true, [[1, 1, 1], [1, 0, 0], [0, 1, 0]]));
+signets.push(new Space(4, 3, true, [[0, 1, 1, 0], [1, 0, 0, 1], [0, 1, 1, 0]]));
+signets.push(new Space(1, 3, true, [[1], [1], [1]]));
 
 //一些常用的函数
 //测试某个函数用时
@@ -35,8 +36,8 @@ const Draw = new function () {
     let prePlace = document.createElement("canvas");
     prePlace.id = "prePlace";
     let prePlaceCRC = prePlace.getContext("2d");
-    let signetPrePlace = new Preview(prePlace, signetSet[signIndex]);
-    let signetPreview = new Preview(SignetPreview.firstElementChild, signetSet[0]);
+    let signetPrePlace = new Preview(prePlace, signets[signIndex]);
+    let signetPreview = new Preview(SignetPreview.firstElementChild, signets[0]);
     signetPreview.show();
     let cropMark = document.createElement("div");
     cropMark.id = "cropMark";
@@ -55,13 +56,16 @@ const Draw = new function () {
                     break
                 }
                 case"signet": {
+                    prePlace.style.left = "";
+                    prePlace.style.top = "";
                     prePlace.width = focusedOne.getDotSize();
                     prePlace.height = focusedOne.getDotSize();
-                    View_area.onmouseover = undefined;
+                    View_area.onmousemove = undefined;
                     View_area.onclick = undefined;
                     break
                 }
                 case "crop": {
+                    cropPart = [];
                     prePlace.style.opacity = "";
                     prePlace.style.border = "";
                     prePlace.style.top = "";
@@ -87,9 +91,9 @@ const Draw = new function () {
                     break
                 }
                 case"signet": {
-                    prePlace.width = signetSet[signIndex].Max_X * focusedOne.getDotSize();
-                    prePlace.height = signetSet[signIndex].Max_Y * focusedOne.getDotSize();
-                    View_area.onmouseover = prePlaceFollow;
+                    prePlace.width = signets[signIndex].Max_X * focusedOne.getDotSize();
+                    prePlace.height = signets[signIndex].Max_Y * focusedOne.getDotSize();
+                    View_area.onmousemove = signetFollow;
                     View_area.onclick = putSignet;
                     break
                 }
@@ -118,11 +122,14 @@ const Draw = new function () {
         }
     }
     this.changeSignet = function (n = 0) {
-        if (n < signetSet.length && n >= 0 && n !== signIndex) {
+        if (n < signets.length && n >= 0 && n !== signIndex) {
             signIndex = n;
-            signetPreview.changeSpace(signetSet[signIndex]);
-            signetPrePlace.changeSpace(signetSet[signIndex]);
+            signetPreview.changeSpace(signets[signIndex]);
             signetPreview.show();
+            if (chosen === "signet") {
+                prePlace.width = signets[signIndex].Max_X * focusedOne.getDotSize();
+                prePlace.height = signets[signIndex].Max_Y * focusedOne.getDotSize();
+            }
         }
     }
     //画笔悬浮预览,绑定于mouseMove事件
@@ -178,21 +185,55 @@ const Draw = new function () {
                 let pp = focusedOne.getDotIndexByPosition(ev.clientX - focusedOne.getPage().offsetLeft, ev.clientY - focusedOne.getPage().offsetTop);
                 if (pp && (p[0] !== pp[0] || p[1] !== pp[1])) {
                     focusedOne.word.add(pp[0], pp[1]);
-                    focusedOne.show();
+                    if (!focusedOne.getFollow())
+                        focusedOne.show();
                     p = pp;
                 }
             }
         }
     }
     //让印章预览位置跟随鼠标的函数
-    const prePlaceFollow = (ev) => {
-
+    const signetFollow = new function () {
+        let lp = [null, null];
+        let t = undefined;
+        const follow = (p) => {
+            prePlace.style.left = p[0] + "px";
+            prePlace.style.top = p[1] + "px";
+            let part = focusedOne.getDotIndexByPosition(p[0], p[1]);
+            part.push(signets[signIndex].Max_X, signets[signIndex].Max_Y);
+            let x = focusedOne.word.cut(part);
+            x.addModle = focusedOne.word.addModle;
+            x.add(0, 0, signets[signIndex]);
+            signetPrePlace.changeSpace(x);
+            signetPrePlace.show();
+            lp = p;
+        }
+        return (ev) => {
+            if (ev.target.parentNode === focusedOne.getPage()) {
+                let p = focusedOne.getDotStart(ev.x - focusedOne.getPage().offsetLeft - prePlace.width / 2, ev.y - focusedOne.getPage().offsetTop - prePlace.height / 2);
+                if (p[0] !== lp[0] || p[1] !== lp[1]) {
+                    if (t)
+                        clearTimeout(t);
+                    t = setTimeout(follow, 50, p);
+                }
+            } else {
+                prePlace.style.left = "";
+                prePlace.style.top = "";
+                clearTimeout(t);
+                t = undefined;
+            }
+        }
     };
     //放置印章
     const putSignet = (ev) => {
-
+        let s = focusedOne.getDotIndexByPosition(ev.x - focusedOne.getPage().offsetLeft - prePlace.width / 2, ev.y - focusedOne.getPage().offsetTop - prePlace.height / 2);
+        ;
+        focusedOne.word.add(s[0], s[1], signets[signIndex])
+        if (!focusedOne.getFollow())
+            focusedOne.show();
     }
 
+    let cropPart = [];
     //确定起始位置并跟随显示结束位置
     const cropBeginPlace = new function () {
         let s = [null, null];
@@ -215,18 +256,20 @@ const Draw = new function () {
             }
         }
         const setCropEnd = (pp = [0, 0]) => {
-            pp = [pp[0] + focusedOne.getDotSize(), pp[1] + focusedOne.getDotSize()];
-            prePlace.width = Math.abs(pp[0] - s[0]);
-            prePlace.height = Math.abs(pp[1] - s[1]);
             let border = Math.floor(focusedOne.getDotSize() / 4), p = [s[0], s[1]];
             if (pp[0] < s[0])
                 p[0] = pp[0];
             if (pp[1] < s[1])
                 p[1] = pp[1];
+            prePlace.width = Math.abs(pp[0] - s[0]) + focusedOne.getDotSize();
+            prePlace.height = Math.abs(pp[1] - s[1]) + focusedOne.getDotSize();
             prePlace.style.left = p[0] - border + "px";
             prePlace.style.top = p[1] - border + "px";
-            if (prePlace.width && prePlace.height)
+            if (prePlace.width && prePlace.height) {
                 prePlaceCRC.putImageData(focusedOne.getImage(p[0] - 23, p[1] - 3, prePlace.width, prePlace.height), 0, 0)
+                let i = focusedOne.getDotIndexByPosition(p[0], p[1])
+                cropPart = [i[0], i[1], prePlace.width / focusedOne.getDotSize(), prePlace.height / focusedOne.getDotSize()]
+            }
             View_area.onmousedown = cropDelete;
         }
         const cropFollow = (ev) => {
@@ -247,6 +290,7 @@ const Draw = new function () {
         //取消框选
         const cropDelete = () => {
             s = [null, null];
+            cropPart = [];
             prePlaceCRC.clearRect(0, 0, prePlace.width, prePlace.height);
             prePlace.style.top = "";
             prePlace.style.left = "";
@@ -259,7 +303,15 @@ const Draw = new function () {
     }
     //保存世界片段
     this.saveCrop = function () {
-
+        if (cropPart.length) {
+            let x = focusedOne.word.cut(cropPart);
+            if (x) {
+                signets.push(x);
+                this.changeSignet(signets.length - 1);
+                return true;
+            }
+        }
+        return false;
     }
 }
 
@@ -331,14 +383,12 @@ View_area.addEventListener("mousedown", function (ev) {
     if (ev.ctrlKey)
         if (ev.target.parentNode === focusedOne.getPage() && ev.target.nodeName === "CANVAS") {
             let sx = ev.clientX, sy = ev.clientY, click;
-            click = View_area.onclick;
-            View_area.onclick = () => {
-                restore();
-            }
             const restore = () => {
                 View_area.onmousemove = null;
                 View_area.onclick = click;
             }
+            click = View_area.onclick;
+            View_area.onclick = restore;
             View_area.onmousemove = (ev) => {
                 if (ev.ctrlKey) {
                     focusedOne.move(sx - ev.clientX, sy - ev.clientY);
@@ -348,7 +398,34 @@ View_area.addEventListener("mousedown", function (ev) {
             }
         }
 })
-
+//实现印章列表拖动显示
+SignetSet.onmousedown = (ev) => {
+    let sx = ev.clientX, click = SignetSet.onclick;
+    const scroll = (ev) => {
+        SignetSet.scrollBy(-(ev.clientX - sx), 0);
+        sx = ev.clientX;
+    }
+    const activeScroll = (ev) => {
+        if (Math.abs(ev.x - sx) > 2) {
+            scroll(ev);
+            SignetSet.onclick = () => {
+                SignetSet.onclick = click;
+            };
+            SignetSet.onmousemove = scroll;
+        }
+    }
+    const end = () => {
+        SignetSet.onmousemove = undefined;
+        SignetSet.onmouseup = undefined;
+        SignetSet.onmouseleave = undefined;
+    };
+    SignetSet.onmousemove = activeScroll;
+    SignetSet.onmouseup = end;
+    SignetSet.onmouseleave = (ev) => {
+        if (ev.target === ev.currentTarget)
+            end();
+    }
+}
 //一些按钮的功能
 document.getElementById("controlBoard").onclick = function (ev) {
     switch (ev.target.id) {
@@ -453,10 +530,18 @@ document.getElementById("pantingModel").onclick = new function () {
         }
     }
 }
-document.getElementById("signetSet").onclick = function (ev) {
-    if (ev.target.parentNode === document.getElementById("signetSet")) {
-        let x = [].indexOf.call(document.getElementById("signetSet").children, ev.target);
-        Draw.changeSignet(x);
+SignetSet.onclick = function (ev) {
+    if (ev.target.parentNode === SignetSet) {
+        let x = [].indexOf.call(SignetSet.children, ev.target);
+        if (x < signets.length)
+            Draw.changeSignet(x);
+        else {
+            if (Draw.saveCrop(Boolean(x - signets.length))) {
+                let ele = document.createElement("button");
+                ele.classList.add("logo2", "selfDefine");
+                SignetSet.children[signets.length - 1].insertAdjacentElement("beforebegin", ele);
+            }
+        }
     }
 }
 
