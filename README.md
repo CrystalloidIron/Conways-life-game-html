@@ -1,3 +1,0 @@
-# conways_life game
-
-
